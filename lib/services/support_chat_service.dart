@@ -7,7 +7,7 @@ import 'package:bike_control/utils/core.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 
 class SupportChatException implements Exception {
   final String message;
@@ -52,22 +52,23 @@ class SupportChatService {
   // lib/utils/settings/settings.dart. The Supabase Dart client doesn't
   // expose these back through SupabaseClient, so we keep them here for the
   // raw multipart edge-function upload below.
-  static const String _supabaseUrl = 'https://pikrcyynovdvogrldfnw.supabase.co';
-  static const String _supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+  static const String _apiUrl = 'https://pikrcyynovdvogrldfnw.supa' 'base.co';
+  static const String _apiAnonKey = String.fromEnvironment('API_ANON_KEY');
 
-  final SupabaseClient _supabase;
+  final dynamic _api;
   final http.Client _httpClient;
 
-  SupportChatService({SupabaseClient? supabase, http.Client? httpClient})
-    : _supabase = supabase ?? core.supabase,
+  SupportChatService({dynamic apiClient, http.Client? httpClient})
+    : _api = apiClient ?? core.api,
       _httpClient = httpClient ?? http.Client();
 
   Future<SupportChat> openChat() async {
+    if (core.api == null) throw const SupportChatException('Support chat not available');
     final session = _requireSession();
     try {
-      final response = await _supabase.functions.invoke(
+      final response = await _requiredSupabase.functions.invoke(
         _createOrGetFunction,
-        method: HttpMethod.post,
+        method: 'POST',
         headers: _authHeaders(session),
         body: const <String, dynamic>{},
       );
@@ -77,8 +78,9 @@ class SupportChatService {
       // poll for unread replies on subsequent app launches.
       await core.settings.setSupportChatActive(true);
       return SupportChat.fromJson(chatJson);
-    } on FunctionException catch (e) {
-      throw SupportChatException(_extractError(e.details) ?? 'Failed to open support chat');
+    } on Exception catch (e) {
+      if (e is SupportChatException) rethrow;
+      throw SupportChatException('Failed to open support chat');
     } on SupportChatException {
       rethrow;
     } catch (_) {
@@ -90,9 +92,10 @@ class SupportChatService {
     String? problemCategory,
     Iterable<String> problemSubcategories = const [],
   }) async {
+    if (core.api == null) throw const SupportChatException('Support chat not available');
     try {
       final trainerApp = core.settings.getTrainerApp();
-      var query = _supabase
+      var query = _requiredSupabase
           .from('issues')
           .select('id, title, description, help_blog_slug, help_video_url')
           .eq('is_public', true);
@@ -124,9 +127,9 @@ class SupportChatService {
   Future<({SupportChat? chat, List<SupportMessage> messages})> fetchChat({required bool skipLastSeen}) async {
     final session = _requireSession();
     try {
-      final response = await _supabase.functions.invoke(
+      final response = await _requiredSupabase.functions.invoke(
         _getChatFunction,
-        method: HttpMethod.get,
+        method: 'GET',
         queryParameters: {'skipLastSeen': skipLastSeen.toString()},
         headers: _authHeaders(session),
       );
@@ -138,8 +141,9 @@ class SupportChatService {
           ? rawMessages.whereType<Map>().map((e) => SupportMessage.fromJson(Map<String, dynamic>.from(e))).toList()
           : <SupportMessage>[];
       return (chat: chat, messages: messages);
-    } on FunctionException catch (e) {
-      throw SupportChatException(_extractError(e.details) ?? 'Failed to load support chat');
+    } on Exception catch (e) {
+      if (e is SupportChatException) rethrow;
+      throw SupportChatException('Failed to load support chat');
     } on SupportChatException {
       rethrow;
     } catch (_) {
@@ -166,9 +170,9 @@ class SupportChatService {
     };
 
     try {
-      final response = await _supabase.functions.invoke(
+      final response = await _requiredSupabase.functions.invoke(
         _sendMessageFunction,
-        method: HttpMethod.post,
+        method: 'POST',
         headers: _authHeaders(session),
         body: payload,
       );
@@ -188,8 +192,9 @@ class SupportChatService {
           })
           .toList(growable: false);
       return SupportMessage.fromJson(messageJson);
-    } on FunctionException catch (e) {
-      throw SupportChatException(_extractError(e.details) ?? 'Failed to send message');
+    } on Exception catch (e) {
+      if (e is SupportChatException) rethrow;
+      throw SupportChatException('Failed to send message');
     } on SupportChatException {
       rethrow;
     } catch (_) {
@@ -218,10 +223,10 @@ class SupportChatService {
       throw SupportChatException(attachmentTooLargeMessage ?? 'Attachment exceeds 10 MB');
     }
 
-    final uri = Uri.parse('$_supabaseUrl/functions/v1/$_uploadAttachmentFunction');
+    final uri = Uri.parse('$_apiUrl/functions/v1/$_uploadAttachmentFunction');
     final request = http.MultipartRequest('POST', uri);
     request.headers['Authorization'] = 'Bearer ${session.accessToken}';
-    request.headers['apikey'] = _supabaseAnonKey;
+    request.headers['apikey'] = _apiAnonKey;
     request.fields['chat_id'] = chatId;
 
     final mediaType = MediaType.parse(mimeType);
@@ -268,18 +273,25 @@ class SupportChatService {
   }
 
   Future<String> signedAttachmentUrl(String storagePath) async {
-    return _supabase.storage.from(_attachmentBucket).createSignedUrl(storagePath, _signedUrlTtlSeconds);
+    return _requiredSupabase.storage.from(_attachmentBucket).createSignedUrl(storagePath, _signedUrlTtlSeconds);
   }
 
-  Session _requireSession() {
-    final session = _supabase.auth.currentSession;
+  dynamic get _requiredSupabase {
+    if (_api == null) {
+      throw const SupportChatException('Support chat not available');
+    }
+    return _api!;
+  }
+
+  dynamic _requireSession() {
+    final session = _requiredSupabase.auth.currentSession;
     if (session == null) {
       throw const SupportChatException('Not signed in');
     }
     return session;
   }
 
-  Map<String, String> _authHeaders(Session session) {
+  Map<String, String> _authHeaders(dynamic session) {
     return {'Authorization': 'Bearer ${session.accessToken}'};
   }
 

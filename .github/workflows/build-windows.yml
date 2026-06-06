@@ -1,0 +1,29 @@
+name: Build Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, stripped]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.1'
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Build Windows
+        run: flutter build windows --debug --dart-define=NO_COMMERCIAL=true
+      
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-debug
+          path: build/windows/x64/runner/Debug/

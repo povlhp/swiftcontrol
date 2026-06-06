@@ -1,0 +1,35 @@
+name: Build iOS Sideload
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, stripped]
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.1'
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Build iOS (no codesign)
+        run: flutter build ios --debug --no-codesign --dart-define=NO_COMMERCIAL=true
+      
+      - name: Create IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r ios-sideload.ipa Payload/
+      
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-sideload-ipa
+          path: ios-sideload.ipa

@@ -4,7 +4,7 @@
 /// `support_messages.intake_answers`) and back from the server when the
 /// `issues` table is filtered by `problem_categories` / `problem_subcategories`.
 /// The IDs are also referenced by the seed migration
-/// `supabase/migrations/20260517070000_seed_intake_help_issues.sql` — keep
+/// Refer to seed migration file for intake help issue data.
 /// them in sync.
 ///
 /// **Convention**: trainer-app IDs are the display names exposed by

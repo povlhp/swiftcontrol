@@ -12,7 +12,7 @@ import 'package:bike_control/widgets/ui/loading_widget.dart';
 import 'package:bike_control/widgets/ui/small_progress_indicator.dart';
 import 'package:bike_control/widgets/ui/toast.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 
 enum SubscriptionPageView {
   main,
@@ -108,7 +108,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   }
 
   void _handleLoggedInFeature(VoidCallback action) {
-    if (_isPro && core.supabase.auth.currentSession != null) {
+    if (_isPro && core.api?.auth?.currentSession != null) {
       action();
     } else {
       _handleProFeature(() {
@@ -177,7 +177,10 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   }
 
   Widget _buildMainView() {
-    final session = core.supabase.auth.currentSession;
+    if (core.isNonCommercial || core.api == null) {
+      return _buildNonCommercialStub();
+    }
+    final session = core.api?.auth?.currentSession;
     final isOutsideStoreWindowsBuild = _iapManager.isOutsideStoreWindowsBuild;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -391,7 +394,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   }
 
   /// Get the account subtitle with Windows-specific messaging
-  String _getAccountSubtitle(Session? session) {
+  String _getAccountSubtitle(dynamic session) {
     if (session != null) {
       return AppLocalizations.of(context).loggedInAsMail(session.user.email ?? '?');
     }
@@ -427,6 +430,54 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNonCommercialStub() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            spacing: 16,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Card(
+                child: Column(
+                  spacing: 16,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withAlpha(30),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.workspace_premium, size: 28, color: Colors.green),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Current Plan').small.muted,
+                              Text('Pro is permanently unlocked').large.bold,
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

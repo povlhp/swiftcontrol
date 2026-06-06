@@ -38,7 +38,7 @@ class _HelpButtonState extends State<HelpButton> {
   /// last seen timestamp on the chat. Failures (no auth, network down,
   /// edge function unavailable) are swallowed — the dot just stays off.
   Future<void> _checkForUnread() async {
-    if (core.supabase.auth.currentSession == null) return;
+    if (core.api?.auth?.currentSession == null) return;
     try {
       final fetched = await SupportChatService().fetchChat(skipLastSeen: true);
       if (!mounted) return;

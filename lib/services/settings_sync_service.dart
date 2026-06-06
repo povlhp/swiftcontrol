@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 
 /// Service that manages automatic syncing of settings for Pro users.
 class SettingsSyncService {
-  final UserSettingsRepository _repository;
+  final UserSettingsRepository? _repository;
   bool _isSyncing = false;
 
   final ValueNotifier<DateTime?> lastSyncedAt = ValueNotifier<DateTime?>(null);
@@ -16,10 +16,11 @@ class SettingsSyncService {
   final ValueNotifier<String?> lastError = ValueNotifier<String?>(null);
 
   SettingsSyncService({UserSettingsRepository? repository})
-    : _repository = repository ?? UserSettingsRepository(core.supabase);
+    : _repository = repository;
 
   /// Initializes the sync service and sets up listeners.
   Future<void> initialize() async {
+    if (core.api == null) return;
     // Check if user is pro and logged in
     if (!_canSync()) return;
 
@@ -39,6 +40,7 @@ class SettingsSyncService {
 
   /// Checks if the user can sync (is pro and logged in).
   bool _canSync() {
+    if (_repository == null) return false;
     return IAPManager.instance.hasActiveSubscription && IAPManager.instance.isLoggedIn;
   }
 
@@ -47,7 +49,7 @@ class SettingsSyncService {
     if (!_canSync()) return;
 
     try {
-      final info = await _repository.getLastSyncInfo();
+      final info = await _repository!.getLastSyncInfo();
       lastSyncedAt.value = info.lastSynced;
     } catch (e) {
       print('Error loading last sync info: $e');
@@ -68,11 +70,11 @@ class SettingsSyncService {
     lastError.value = null;
 
     try {
-      final settings = await _repository.saveSettings();
+      final settings = await _repository!.saveSettings();
 
       if (settings != null) {
         lastSyncedAt.value = settings.updatedAt;
-        await _repository.saveLocalVersionInfo(settings.version, settings.updatedAt ?? DateTime.now());
+        await _repository!.saveLocalVersionInfo(settings.version, settings.updatedAt ?? DateTime.now());
         return true;
       } else {
         lastError.value = 'Failed to save settings';
@@ -102,27 +104,27 @@ class SettingsSyncService {
     lastError.value = null;
 
     try {
-      final hasNewer = await _repository.hasNewerSettingsOnServer(deviceId: deviceId);
+      final hasNewer = await _repository!.hasNewerSettingsOnServer(deviceId: deviceId);
 
       if (!hasNewer && !kDebugMode) {
         // No newer settings on server
         return true;
       }
 
-      final success = await _repository.loadAndApplySettings(deviceId: deviceId);
+      final success = await _repository!.loadAndApplySettings(deviceId: deviceId);
 
       if (success) {
         // Update last sync info
         UserSettings? settings;
         if (deviceId != null) {
-          settings = await _repository.getSettingsFromDevice(deviceId);
+          settings = await _repository!.getSettingsFromDevice(deviceId);
         } else {
-          settings = await _repository.getSettings();
+          settings = await _repository!.getSettings();
         }
 
         if (settings != null) {
           lastSyncedAt.value = settings.updatedAt;
-          await _repository.saveLocalVersionInfo(settings.version, settings.updatedAt ?? DateTime.now());
+          await _repository!.saveLocalVersionInfo(settings.version, settings.updatedAt ?? DateTime.now());
         }
       }
 
@@ -142,7 +144,7 @@ class SettingsSyncService {
     if (!_canSync()) return false;
 
     try {
-      return await _repository.hasNewerSettingsOnServer(deviceId: deviceId);
+      return await _repository!.hasNewerSettingsOnServer(deviceId: deviceId);
     } catch (e) {
       return false;
     }

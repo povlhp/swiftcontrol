@@ -17,7 +17,7 @@ import 'package:bike_control/widgets/ui/toast.dart';
 import 'package:flutter/material.dart' show BackButton, RefreshIndicator;
 import 'package:prop/prop.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 
 typedef TelemetryBuilder = Future<TelemetrySnapshot> Function();
 
@@ -45,7 +45,7 @@ class SupportChatPage extends StatefulWidget {
 
 class _SupportChatPageState extends State<SupportChatPage> with WidgetsBindingObserver {
   final SupportChatService _service = SupportChatService();
-  StreamSubscription<AuthState>? _authSub;
+  StreamSubscription<dynamic>? _authSub;
 
   bool _loading = false;
   String? _loadError;
@@ -62,14 +62,14 @@ class _SupportChatPageState extends State<SupportChatPage> with WidgetsBindingOb
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _authSub = core.supabase.auth.onAuthStateChange.listen((_) {
+    _authSub = core.api?.auth?.onAuthStateChange?.listen((_) {
       if (!mounted) return;
       setState(() {});
-      if (core.supabase.auth.currentSession != null && _chat == null && !_loading) {
+      if (core.api?.auth?.currentSession != null && _chat == null && !_loading) {
         _bootstrap();
       }
     });
-    if (core.supabase.auth.currentSession != null) {
+    if (core.api?.auth?.currentSession != null) {
       _bootstrap();
     }
     _loadIssues();
@@ -150,7 +150,7 @@ class _SupportChatPageState extends State<SupportChatPage> with WidgetsBindingOb
     final telemetry = await widget.telemetryBuilder();
 
     final placeholderId = 'pending-${DateTime.now().microsecondsSinceEpoch}';
-    final session = core.supabase.auth.currentSession;
+    final session = core.api?.auth?.currentSession;
     final placeholder = SupportMessage(
       id: placeholderId,
       chatId: chat.id,
@@ -243,7 +243,7 @@ class _SupportChatPageState extends State<SupportChatPage> with WidgetsBindingOb
   }
 
   Widget _body() {
-    if (core.supabase.auth.currentSession == null) {
+    if (core.api?.auth?.currentSession == null) {
       return SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Center(

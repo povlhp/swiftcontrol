@@ -183,8 +183,7 @@ String _vsMode(VirtualShiftingMode mode) {
 String? _appVersion() {
   final info = packageInfoValue;
   if (info == null) return null;
-  final patch = shorebirdPatch;
-  return patch == null ? info.version : '${info.version}+${patch.number}';
+  return info.version;
 }
 
 String _appPlatform() {

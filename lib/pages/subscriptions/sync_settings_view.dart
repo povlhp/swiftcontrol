@@ -37,7 +37,7 @@ class _SyncSettingsViewState extends State<SyncSettingsView> {
   @override
   void initState() {
     super.initState();
-    _repository = UserSettingsRepository(core.supabase);
+    _repository = UserSettingsRepository(core.api);
     _syncService = SettingsSyncService(repository: _repository);
     _syncService.initialize();
 

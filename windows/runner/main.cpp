@@ -134,7 +134,7 @@ static void CreateNewWindow(const std::vector<std::string>& args) {
   // sub-engine. Calling RegisterPlugins() here deadlocks the sub-engine
   // before Dart main() runs — BikeControl has ~20 Windows plugins; several
   // own process-singleton OS resources already held by the main engine
-  // (windows_iap, media_key_detector_windows, bluetooth_low_energy_windows,
+  // (media_key_detector_windows, bluetooth_low_energy_windows,
   // etc.).
   WindowManagerPluginRegisterWithRegistrar(
       controller->engine()->GetRegistrarForPlugin("WindowManagerPlugin"));

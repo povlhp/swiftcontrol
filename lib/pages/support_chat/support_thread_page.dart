@@ -71,7 +71,7 @@ class _SupportThreadPageState extends State<SupportThreadPage> {
   Future<void> _send(String body, StagedAttachment? staged) async {
     final telemetry = await widget.telemetryBuilder();
     final placeholderId = 'pending-${DateTime.now().microsecondsSinceEpoch}';
-    final session = core.supabase.auth.currentSession;
+    final session = core.api?.auth?.currentSession;
     final placeholder = SupportMessage(
       id: placeholderId,
       chatId: widget.chat.id,

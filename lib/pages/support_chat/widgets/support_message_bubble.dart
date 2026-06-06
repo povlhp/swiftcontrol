@@ -7,9 +7,8 @@ import 'package:bike_control/services/support_chat_service.dart';
 import 'package:bike_control/utils/i18n_extension.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/gestures.dart' show TapGestureRecognizer;
-import 'package:in_app_review/in_app_review.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
-import 'package:url_launcher/url_launcher_string.dart';
+import 'package:url_launcher/url_launcher_string.dart' show launchUrlString, LaunchMode;
 
 /// Magic admin-message body that the backend sends to nudge a happy user
 /// toward leaving a store rating. The bubble swaps it for a localised
@@ -148,15 +147,10 @@ class SupportMessageBubble extends StatelessWidget {
   /// Triggers the platform's in-app review sheet, falling back to the store
   /// listing when the in-app sheet isn't available (e.g. simulator, browser).
   Future<void> _openRating() async {
-    final review = InAppReview.instance;
-    if (await review.isAvailable()) {
-      await review.requestReview();
-    } else {
-      await review.openStoreListing(
-        appStoreId: 'id6753721284',
-        microsoftStoreId: '9NP42GS03Z26',
-      );
-    }
+    await launchUrlString(
+      'https://play.google.com/store/apps/details?id=de.jonasbark.swiftcontrol',
+      mode: LaunchMode.externalApplication,
+    );
   }
 
   String _formatTimestamp(DateTime utc) {

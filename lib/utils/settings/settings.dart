@@ -21,7 +21,6 @@ import 'package:path_provider_windows/path_provider_windows.dart';
 import 'package:prop/prop.dart' hide Set;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_windows/shared_preferences_windows.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../main.dart';
@@ -54,15 +53,6 @@ class Settings {
 
       final app = getKeyMap();
       core.actionHandler.init(app);
-
-      try {
-        await Supabase.initialize(
-          url: 'https://pikrcyynovdvogrldfnw.supabase.co',
-          anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
-        );
-      } catch (e, s) {
-        recordError(e, s, context: 'Supabase initialization');
-      }
 
       if (!kIsWeb && Platform.isWindows) {
         await WindowsStoreEnvironment.initialize();

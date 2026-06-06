@@ -12,11 +12,7 @@ import 'package:bike_control/widgets/title.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
-import 'package:sign_in_button/sign_in_button.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -34,7 +30,10 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final session = core.supabase.auth.currentSession;
+    if (core.isNonCommercial || core.api == null) {
+      return _buildNonCommercialStub(context);
+    }
+    final session = core.api?.auth?.currentSession;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Center(
@@ -81,21 +80,15 @@ class _LoginPageState extends State<LoginPage> {
               spacing: 16,
               mainAxisSize: MainAxisSize.min,
               children: [
-                SignInButton(
-                  Buttons.google,
-                  onPressed: _nativeGoogleSignIn,
-                ),
-                SignInButton(
-                  Buttons.apple,
-                  onPressed: _signInWithApple,
-                ),
-                SignInButton(
-                  Buttons.gitHub,
+                Button.secondary(
+                  leading: const Icon(Icons.code, size: 18),
                   onPressed: _signInWithGithub,
+                  child: const Text('Sign in with GitHub'),
                 ),
-                SignInButton(
-                  Buttons.facebook,
+                Button.secondary(
+                  leading: const Icon(Icons.facebook, size: 18),
                   onPressed: _signInWithFacebook,
+                  child: const Text('Sign in with Facebook'),
                 ),
               ],
             ),
@@ -143,7 +136,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildSignedIn(BuildContext context, Session session) {
+  Widget _buildSignedIn(BuildContext context, dynamic session) {
     return Column(
       spacing: 16,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -172,7 +165,7 @@ class _LoginPageState extends State<LoginPage> {
               Button.secondary(
                 child: Text(AppLocalizations.of(context).logout),
                 onPressed: () async {
-                  await core.supabase.auth.signOut();
+                  await core.api?.auth?.signOut();
                 },
               ),
             ],
@@ -182,110 +175,19 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Future<AuthResponse?> _nativeGoogleSignIn() async {
-    if (Platform.isAndroid || Platform.isIOS) {
-      const webClientId = '709945926587-bgk7j9qc86t7nuemu100ngvl9c7irv9k.apps.googleusercontent.com';
-      final iosClientId = Platform.isAndroid
-          ? (kDebugMode
-                ? '709945926587-fr2uodlnea57jc3mr8qannt45hi0tjeq.apps.googleusercontent.com'
-                : '709945926587-orkcqc71o6i3cf5lkd85k9n93lobfgae.apps.googleusercontent.com')
-          : '709945926587-0iierajthibf4vhqf85fc7bbpgbdgua2.apps.googleusercontent.com';
-      final scopes = ['email'];
-      final googleSignIn = GoogleSignIn.instance;
-      await googleSignIn.initialize(
-        serverClientId: webClientId,
-        clientId: iosClientId,
-      );
-      GoogleSignInAccount? googleUser = await googleSignIn.attemptLightweightAuthentication(reportAllExceptions: true);
-      googleUser ??= await googleSignIn.authenticate();
-
-      final authorization =
-          await googleUser.authorizationClient.authorizationForScopes(scopes) ??
-          await googleUser.authorizationClient.authorizeScopes(scopes);
-      final idToken = googleUser.authentication.idToken;
-      if (idToken == null) {
-        throw AuthException('No ID Token found.');
-      }
-      final response = await core.supabase.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: idToken,
-        accessToken: authorization.accessToken,
-      );
-
-      if (widget.pushed) {
-        Navigator.pop(context);
-      } else {
-        widget.onBack?.call();
-      }
-      return response;
-    } else {
-      await core.supabase.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: kIsWeb ? null : 'bikecontrol://login/',
-        authScreenLaunchMode: kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
-      );
-      if (widget.pushed) {
-        Navigator.pop(context);
-      } else {
-        widget.onBack?.call();
-      }
-      return null;
-    }
-  }
-
-  Future<AuthResponse?> _signInWithApple() async {
-    if (Platform.isIOS || Platform.isMacOS) {
-      final rawNonce = core.supabase.auth.generateRawNonce();
-      final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
-
-      final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [AppleIDAuthorizationScopes.email],
-        nonce: hashedNonce,
-      );
-      final idToken = credential.identityToken;
-      if (idToken == null) {
-        throw const AuthException('Could not find ID Token from generated credential.');
-      }
-      final authResponse = await core.supabase.auth.signInWithIdToken(
-        provider: OAuthProvider.apple,
-        idToken: idToken,
-        nonce: rawNonce,
-      );
-
-      if (widget.pushed) {
-        Navigator.pop(context);
-      } else {
-        widget.onBack?.call();
-      }
-      return authResponse;
-    } else {
-      await core.supabase.auth.signInWithOAuth(
-        OAuthProvider.apple,
-        redirectTo: kIsWeb ? null : 'bikecontrol://login/',
-        authScreenLaunchMode: kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
-      );
-      if (widget.pushed) {
-        Navigator.pop(context);
-      } else {
-        widget.onBack?.call();
-      }
-      return null;
-    }
-  }
-
   Future<void> _signInWithGithub() async {
-    await core.supabase.auth.signInWithOAuth(
-      OAuthProvider.github,
+    await core.api?.auth?.signInWithOAuth(
+      'github',
       redirectTo: kIsWeb ? null : 'bikecontrol://login/',
-      authScreenLaunchMode: kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+      authScreenLaunchMode: kIsWeb ? null : 'externalApplication',
     );
   }
 
   Future<void> _signInWithFacebook() async {
-    await core.supabase.auth.signInWithOAuth(
-      OAuthProvider.facebook,
+    await core.api?.auth?.signInWithOAuth(
+      'facebook',
       redirectTo: kIsWeb ? null : 'bikecontrol://login/',
-      authScreenLaunchMode: kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+      authScreenLaunchMode: kIsWeb ? null : 'externalApplication',
     );
   }
 
@@ -300,5 +202,47 @@ class _LoginPageState extends State<LoginPage> {
     final body = Uri.encodeComponent('\n\n$dbg');
     final mail = Uri.parse('mailto:$email?subject=$subject&body=$body');
     await launchUrl(mail);
+  }
+
+  Widget _buildNonCommercialStub(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 820),
+          child: Column(
+            spacing: 32,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withAlpha(20),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.auto_awesome,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              Column(
+                spacing: 8,
+                children: [
+                  Text('All features unlocked').xLarge.bold,
+                  Text('Free forever').large.muted,
+                ],
+              ),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Icon(Icons.check_circle, size: 48, color: Colors.green),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

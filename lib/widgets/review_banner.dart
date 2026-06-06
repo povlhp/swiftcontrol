@@ -1,22 +1,17 @@
 import 'package:bike_control/gen/l10n.dart';
 import 'package:bike_control/services/review_prompt_service.dart';
-import 'package:in_app_review/in_app_review.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class ReviewBanner extends StatelessWidget {
   final ReviewPromptService service;
   const ReviewBanner({super.key, required this.service});
 
   Future<void> _onRate() async {
-    final review = InAppReview.instance;
-    if (await review.isAvailable()) {
-      await review.requestReview();
-    } else {
-      await review.openStoreListing(
-        appStoreId: 'id6753721284',
-        microsoftStoreId: '9NP42GS03Z26',
-      );
-    }
+    await launchUrlString(
+      'https://play.google.com/store/apps/details?id=de.jonasbark.swiftcontrol',
+      mode: LaunchMode.externalApplication,
+    );
     await service.markCompleted();
   }
 

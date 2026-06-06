@@ -34,7 +34,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:prop/prop.dart';
 import 'package:prop/services/bridge_usage_tracker.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:universal_ble/universal_ble.dart';
 
 import '../bluetooth/connection.dart';
@@ -55,7 +54,15 @@ class Core {
   late final workoutRecorder = WorkoutRecorder();
   late final workoutRepository = WorkoutRepository();
 
-  late final supabase = Supabase.instance.client;
+  /// Returns `true` only when the app is built with `--dart-define=NO_COMMERCIAL=true`.
+  /// Use this to disable paid/pro features in non-commercial builds.
+  bool get isNonCommercial => bool.fromEnvironment('NO_COMMERCIAL', defaultValue: false);
+
+  /// Returns `true` when the app is built without the `--dart-define=NO_COMMERCIAL=true` flag.
+  /// Use this to guard paid/pro features.
+  bool get isCommercial => !isNonCommercial;
+
+  dynamic get api => null;
   late final whooshLink = WhooshLink();
   BridgeUsageTracker? _bridgeUsageTracker;
   BridgeUsageTracker get bridgeUsageTracker {

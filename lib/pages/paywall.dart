@@ -3,8 +3,6 @@ import 'package:bike_control/utils/iap/iap_manager.dart';
 import 'package:bike_control/widgets/ui/colors.dart';
 import 'package:bike_control/widgets/ui/pro_badge.dart';
 import 'package:flutter/foundation.dart';
-import 'package:intl/intl.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -145,7 +143,6 @@ class _PaywallState extends State<Paywall> {
     _selectedPlan = widget.defaultToFullVersion ? _PaywallPlan.fullVersion : _PaywallPlan.yearly;
     _iapManager.entitlements.addListener(_onEntitlementsChanged);
     _iapManager.isPurchased.addListener(_onEntitlementsChanged);
-    _loadRevenueCatPricing();
   }
 
   @override
@@ -228,111 +225,6 @@ class _PaywallState extends State<Paywall> {
     setState(() {
       _selectedPlan = plan;
     });
-  }
-
-  Future<void> _loadRevenueCatPricing() async {
-    if (defaultTargetPlatform != TargetPlatform.macOS) {
-      return;
-    }
-
-    try {
-      final offerings = await Purchases.getOfferings();
-      final pricing = _buildPricingFromOfferings(offerings);
-      if (pricing != null && mounted) {
-        setState(() {
-          _pricing = pricing;
-        });
-      }
-    } catch (e) {
-      debugPrint('Could not load RevenueCat offerings for paywall: $e');
-    }
-  }
-
-  _PaywallPricing? _buildPricingFromOfferings(Offerings offerings) {
-    final allOfferings = offerings.all.values.toList();
-    final proOffering = offerings.all[_iapManager.isPurchased.value ? 'proonly-freemonth' : 'pro'];
-    final defaultOffering = offerings.all['default'];
-
-    final monthlyPackage =
-        proOffering?.monthly ??
-        offerings.current?.monthly ??
-        _firstPackageFromOfferings(allOfferings, (offering) => offering.monthly);
-
-    final yearlyPackage =
-        proOffering?.annual ??
-        offerings.current?.annual ??
-        _firstPackageFromOfferings(allOfferings, (offering) => offering.annual);
-
-    final lifetimePackage =
-        defaultOffering?.lifetime ??
-        offerings.current?.lifetime ??
-        _firstPackageFromOfferings(allOfferings, (offering) => offering.lifetime);
-
-    if (monthlyPackage == null && yearlyPackage == null && lifetimePackage == null) {
-      return null;
-    }
-
-    final monthlyStoreProduct = monthlyPackage?.storeProduct;
-    final yearlyStoreProduct = yearlyPackage?.storeProduct;
-    final lifetimeStoreProduct = lifetimePackage?.storeProduct;
-
-    final yearlyPrice = yearlyStoreProduct != null
-        ? '${_formatCurrency(yearlyStoreProduct.price / 12, yearlyStoreProduct.currencyCode)}/mo'
-        : _pricing.yearlyPrice;
-
-    final yearlyBilled = yearlyStoreProduct != null
-        ? AppLocalizations.of(context).paywall_billedAtYearly(yearlyStoreProduct.priceString)
-        : _pricing.yearlyBilled;
-
-    final monthlyPrice = monthlyStoreProduct != null ? '' : _pricing.monthlyPrice;
-
-    final monthlyBilled = monthlyStoreProduct != null
-        ? AppLocalizations.of(context).paywall_billedAtPricemo(monthlyStoreProduct.priceString)
-        : _pricing.monthlyBilled;
-
-    final fullVersionSubtitle = lifetimeStoreProduct != null
-        ? '${AppLocalizations.of(context).only} ${lifetimeStoreProduct.priceString}'
-        : _pricing.fullVersionSubtitle;
-
-    String? discountBadge;
-    if (monthlyStoreProduct != null && yearlyStoreProduct != null && monthlyStoreProduct.price > 0) {
-      final yearlyEquivalent = yearlyStoreProduct.price / 12;
-      final savingsFraction = (monthlyStoreProduct.price - yearlyEquivalent) / monthlyStoreProduct.price;
-      final savingsPercent = (savingsFraction * 100).round();
-      if (savingsPercent > 0) {
-        discountBadge = '$savingsPercent% OFF';
-      }
-    }
-
-    return _PaywallPricing(
-      yearlyPrice: yearlyPrice,
-      yearlyBilled: yearlyBilled,
-      monthlyPrice: monthlyPrice,
-      monthlyBilled: monthlyBilled,
-      fullVersionSubtitle: fullVersionSubtitle,
-      discountBadge: discountBadge,
-    );
-  }
-
-  Package? _firstPackageFromOfferings(
-    Iterable<Offering> offerings,
-    Package? Function(Offering offering) selector,
-  ) {
-    for (final offering in offerings) {
-      final package = selector(offering);
-      if (package != null) {
-        return package;
-      }
-    }
-    return null;
-  }
-
-  String _formatCurrency(double value, String currencyCode) {
-    final formatter = NumberFormat.currency(
-      name: currencyCode,
-      decimalDigits: 2,
-    );
-    return formatter.format(value);
   }
 
   @override

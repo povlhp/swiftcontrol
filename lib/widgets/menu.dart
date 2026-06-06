@@ -14,10 +14,9 @@ import 'package:dartx/dartx.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show showLicensePage;
 import 'package:flutter/services.dart';
-import 'package:in_app_review/in_app_review.dart';
 import 'package:keypress_simulator/keypress_simulator.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:prop/emulators/definitions/fitness_bike_definition.dart';
-import 'package:purchases_flutter/purchases_flutter.dart' show Purchases;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:universal_ble/universal_ble.dart';
 
@@ -71,13 +70,10 @@ List<Widget> buildMenuButtons(BuildContext context) {
                       leading: Icon(Icons.star_rate),
                       child: Text(context.i18n.leaveAReview),
                       onPressed: (c) async {
-                        final InAppReview inAppReview = InAppReview.instance;
-
-                        if (await inAppReview.isAvailable()) {
-                          inAppReview.requestReview();
-                        } else {
-                          inAppReview.openStoreListing(appStoreId: 'id6753721284', microsoftStoreId: '9NP42GS03Z26');
-                        }
+                        await launchUrlString(
+                          'https://play.google.com/store/apps/details?id=de.jonasbark.swiftcontrol',
+                          mode: LaunchMode.externalApplication,
+                        );
                       },
                     ),
                   ],
@@ -96,13 +92,13 @@ List<Widget> buildMenuButtons(BuildContext context) {
 }
 
 Future<String> debugText() async {
-  final userId = IAPManager.instance.isUsingRevenueCat ? (await Purchases.appUserID) : null;
+  const String? userId = null;
   final proxies = core.connection.proxyDevices;
   final proxyBlock = proxies.isEmpty ? '-' : proxies.map(_describeProxyDevice).join('\n  ');
   return '''
 
 ---
-App Version: ${packageInfoValue?.version}${shorebirdPatch?.number != null ? '+${shorebirdPatch!.number}' : ''}
+App Version: ${packageInfoValue?.version}
 Platform: ${Platform.operatingSystem} ${Platform.operatingSystemVersion}
 Target: ${core.settings.getLastTarget()?.name ?? '-'}
 Trainer App: ${core.settings.getTrainerApp()?.name ?? '-'}
@@ -267,13 +263,10 @@ class BKMenuButton extends StatelessWidget {
               leading: Icon(Icons.star_rate),
               child: Text(context.i18n.leaveAReview),
               onPressed: (c) async {
-                final InAppReview inAppReview = InAppReview.instance;
-
-                if (await inAppReview.isAvailable()) {
-                  inAppReview.requestReview();
-                } else {
-                  inAppReview.openStoreListing(appStoreId: 'id6753721284', microsoftStoreId: '9NP42GS03Z26');
-                }
+                await launchUrlString(
+                  'https://play.google.com/store/apps/details?id=de.jonasbark.swiftcontrol',
+                  mode: LaunchMode.externalApplication,
+                );
               },
             ),
             MenuButton(

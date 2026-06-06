@@ -3,29 +3,27 @@ import 'dart:convert';
 
 import 'package:bike_control/models/user_device.dart';
 import 'package:bike_control/models/user_settings.dart';
-import 'package:bike_control/services/device_identity_service.dart';
 import 'package:bike_control/utils/core.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Repository for managing user settings synchronization with Supabase.
 class UserSettingsRepository {
-  final SupabaseClient _supabase;
-  final DeviceIdentityService _deviceIdentity;
+  final dynamic _api;
+  final dynamic _deviceIdentity;
 
-  UserSettingsRepository(this._supabase, {DeviceIdentityService? deviceIdentity})
-    : _deviceIdentity = deviceIdentity ?? DeviceIdentityService();
+  UserSettingsRepository(this._api, {dynamic deviceIdentity})
+    : _deviceIdentity = deviceIdentity;
 
   /// Gets the current user's settings from Supabase.
   /// Returns null if no settings exist or user is not logged in.
   Future<UserSettings?> getSettings() async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _api.auth.currentUser?.id;
     if (userId == null) return null;
 
-    final remoteId = await _deviceIdentity.getRemoteId(_supabase);
+    final remoteId = await _deviceIdentity.getRemoteId(_api);
     if (remoteId == null) return null;
 
     try {
-      final response = await _supabase
+      final response = await _api
           .from('user_settings')
           .select()
           .eq('user_id', userId)
@@ -44,11 +42,11 @@ class UserSettingsRepository {
   /// Gets settings from a specific device.
   /// [deviceId] is the device ID to fetch settings from.
   Future<UserSettings?> getSettingsFromDevice(String deviceId) async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _api.auth.currentUser?.id;
     if (userId == null) return null;
 
     try {
-      final response = await _supabase
+      final response = await _api
           .from('user_settings')
           .select()
           .eq('user_id', userId)
@@ -66,11 +64,11 @@ class UserSettingsRepository {
 
   /// Gets all settings for the current user across all devices.
   Future<List<UserSettings>> getAllDeviceSettings() async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _api.auth.currentUser?.id;
     if (userId == null) return [];
 
     try {
-      final response = await _supabase
+      final response = await _api
           .from('user_settings')
           .select()
           .eq('user_id', userId)
@@ -85,11 +83,11 @@ class UserSettingsRepository {
 
   /// Gets all registered devices for the current user.
   Future<List<UserDevice>> getRegisteredDevices() async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _api.auth.currentUser?.id;
     if (userId == null) return [];
 
     try {
-      final response = await _supabase
+      final response = await _api
           .from('user_devices')
           .select()
           .eq('user_id', userId)
@@ -106,12 +104,12 @@ class UserSettingsRepository {
   /// Saves the current local settings to Supabase.
   /// Automatically increments version and handles conflict resolution.
   Future<UserSettings?> saveSettings() async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _api.auth.currentUser?.id;
     if (userId == null) return null;
 
     try {
       // Get remote device ID (from user_devices table)
-      final deviceId = await _deviceIdentity.getRemoteId(_supabase);
+      final deviceId = await _deviceIdentity.getRemoteId(_api);
       if (deviceId == null || deviceId.isEmpty) {
         print('Cannot save settings: device is not registered');
         return null;
@@ -139,7 +137,7 @@ class UserSettingsRepository {
         version: newVersion,
       );
 
-      final response = await _supabase
+      final response = await _api
           .from('user_settings')
           .upsert(
             settings.toJson(),

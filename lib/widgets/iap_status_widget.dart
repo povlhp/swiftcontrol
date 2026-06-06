@@ -12,7 +12,6 @@ import 'package:bike_control/widgets/ui/toast.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -180,8 +179,8 @@ class _IAPStatusWidgetState extends State<IAPStatusWidget> {
                                     });
                                     final redeemed = await _redeemPurchase(
                                       purchaseId: purchaseId,
-                                      supabaseAnonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
-                                      supabaseUrl: 'https://pikrcyynovdvogrldfnw.supabase.co',
+                                      apiAnonKey: const String.fromEnvironment('API_ANON_KEY'),
+                                      apiUrl: 'https://pikrcyynovdvogrldfnw.supa' 'base.co',
                                     );
                                     if (redeemed) {
                                       await IAPManager.instance.redeem(purchaseId);
@@ -209,10 +208,9 @@ class _IAPStatusWidgetState extends State<IAPStatusWidget> {
                                                 OutlineButton(
                                                   child: Text(context.i18n.getSupport),
                                                   onPressed: () async {
-                                                    final appUserId = await Purchases.appUserID;
-                                                    launchUrlString(
-                                                      'mailto:jonas@bikecontrol.app?subject=Bike%20Control%20Purchase%20Redemption%20Help%20for%20$appUserId',
-                                                    );
+                                                  launchUrlString(
+                                                    'mailto:jonas@bikecontrol.app?subject=Bike%20Control%20Purchase%20Redemption%20Help',
+                                                  );
                                                   },
                                                 ),
                                                 TextButton(
@@ -264,10 +262,9 @@ class _IAPStatusWidgetState extends State<IAPStatusWidget> {
                                 ),
                                 OutlineButton(
                                   child: Text(context.i18n.getSupport),
-                                  onPressed: () async {
-                                    final appUserId = await Purchases.appUserID;
+                                  onPressed: () {
                                     launchUrlString(
-                                      'mailto:jonas@bikecontrol.app?subject=Bike%20Control%20Purchase%20Redemption%20Help%20for%20$appUserId',
+                                      'mailto:jonas@bikecontrol.app?subject=Bike%20Control%20Purchase%20Redemption%20Help',
                                     );
                                   },
                                 ),
@@ -308,19 +305,14 @@ class _IAPStatusWidgetState extends State<IAPStatusWidget> {
                                 Text(AppLocalizations.of(context).restorePurchaseInfo).xSmall,
                                 OutlineButton(
                                   child: Text(context.i18n.getSupport),
-                                  onPressed: () async {
-                                    final appUserId = await Purchases.appUserID;
+                                  onPressed: () {
                                     launchUrlString(
-                                      'mailto:jonas@bikecontrol.app?subject=Bike%20Control%20Purchase%20Redemption%20Help%20for%20$appUserId',
+                                      'mailto:jonas@bikecontrol.app?subject=Bike%20Control%20Purchase%20Redemption%20Help',
                                     );
                                   },
                                 ),
                               ],
-                              if (IAPManager.instance.isUsingRevenueCat && _alreadyBoughtQuestion == null)
-                                _buildRestoreAction(
-                                  label: AppLocalizations.of(context).restorePurchases,
-                                  leftPadding: 0,
-                                ),
+
                             ],
                           )
                         else ...[
@@ -347,11 +339,7 @@ class _IAPStatusWidgetState extends State<IAPStatusWidget> {
                               },
                             ),
                           ),
-                          if (IAPManager.instance.isUsingRevenueCat)
-                            _buildRestoreAction(
-                              label: AppLocalizations.of(context).restorePurchases,
-                              leftPadding: 42.0,
-                            ),
+
                           if (Platform.isWindows)
                             _buildRestoreAction(
                               label: 'Restore / Sync subscription',
@@ -462,19 +450,19 @@ class _IAPStatusWidgetState extends State<IAPStatusWidget> {
   }
 
   Future<bool> _redeemPurchase({
-    required String supabaseUrl,
-    required String supabaseAnonKey,
+    required String apiUrl,
+    required String apiAnonKey,
     required String purchaseId,
   }) async {
-    final uri = Uri.parse('$supabaseUrl/functions/v1/redeem-purchase');
+    final uri = Uri.parse('$apiUrl/functions/v1/redeem-purchase');
 
-    final appUserId = await Purchases.appUserID;
+    const appUserId = '';
 
     final response = await http.post(
       uri,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $supabaseAnonKey',
+        'Authorization': 'Bearer $apiAnonKey',
       },
       body: jsonEncode({
         'purchaseId': purchaseId,

@@ -114,3 +114,112 @@ Please consider donating to support the development of this app :)
 - [via PayPal](https://paypal.me/boni)
 - [via Credit Card, Google Pay, Apple Pay, etc. (USD)](https://donate.stripe.com/8x24gzc5c4ZE3VJdt36J201)
 - [via Credit Card, Google Pay, Apple Pay, etc. (EUR)](https://donate.stripe.com/9B6aEX0muajY8bZ1Kl6J200)
+
+## Fork Information
+
+This is a **non-commercial fork** of [BikeControl](https://github.com/OpenBikeControl/bikecontrol) that removes all commercial dependencies (Supabase, RevenueCat, in-app purchases, etc.) and provides free access to all pro features.
+
+### What's Different
+- All pro features permanently unlocked
+- No subscription required
+- No account/login required
+- Works offline (no external service dependencies)
+- CI builds for Windows, Android, and iOS (sideload)
+
+### What's Removed
+- Supabase backend (auth, sync, entitlements)
+- RevenueCat (iOS/Android IAP)
+- Windows Store IAP
+- Google Sign-In / Apple Sign-In
+- Shorebird (OTA updates)
+- In-app purchase, review, update packages
+
+### Upstream Compatibility
+This fork maintains compatibility with the upstream project. See [FORK_MERGE.md](FORK_MERGE.md) for instructions on merging updates.
+
+## Building from Source
+
+### Prerequisites
+- Flutter 3.44.1 (`flutter --version`)
+- Android Studio / Xcode / Visual Studio (depending on target platform)
+
+### Windows
+```bash
+flutter pub get
+flutter build windows --debug --dart-define=NO_COMMERCIAL=true
+```
+Output: `build/windows/x64/runner/Debug/bike_control.exe`
+
+### Android
+```bash
+flutter pub get
+flutter build apk --debug --dart-define=NO_COMMERCIAL=true
+```
+Output: `build/app/outputs/flutter-apk/app-debug.apk`
+
+### iOS (Sideload)
+```bash
+flutter pub get
+flutter build ios --debug --no-codesign --dart-define=NO_COMMERCIAL=true
+```
+Output: `build/ios/iphoneos/Runner.app`
+
+To create an .ipa for sideloading:
+```bash
+mkdir -p Payload
+cp -r build/ios/iphoneos/Runner.app Payload/
+zip -r BikeControl.ipa Payload/
+```
+
+### NO_COMMERCIAL Flag
+The `--dart-define=NO_COMMERCIAL=true` flag is **required** for all builds. This flag:
+- Disables Supabase initialization
+- Uses NoopIAPManager (all pro features unlocked)
+- Removes network calls to commercial services
+- Shows "All features unlocked" in subscription pages
+
+Without this flag, the app will attempt to connect to commercial services and may fail.
+
+## CI/CD
+
+This fork includes GitHub Actions workflows that build the app for all platforms:
+
+| Workflow | Trigger | Output |
+|----------|---------|--------|
+| `build-android.yml` | Push to `main`/`stripped`, manual | Android debug APK |
+| `build-windows.yml` | Push to `main`/`stripped`, manual | Windows debug build |
+| `build-ios-sideload.yml` | Push to `main`/`stripped`, manual | iOS unsigned .ipa |
+| `analyze.yml` | Push/PR to `main`/`stripped` | Flutter analyze results |
+
+### Downloading Builds
+1. Go to [Actions](../../actions) tab
+2. Click on the latest workflow run
+3. Scroll to "Artifacts" section
+4. Download the build for your platform
+
+### iOS Sideload Installation
+1. Download `ios-sideload-ipa` artifact
+2. Install [AltStore](https://altstore.io/) or [Sideloadly](https://sideloadly.io/)
+3. Connect your iOS device
+4. Sign in with your free Apple ID
+5. Install the .ipa file
+6. Trust the developer certificate:
+   - Settings → General → VPN & Device Management → Developer App → Trust
+
+**Note**: Free Apple ID certificates expire after 7 days. AltStore can auto-refresh.
+
+## Quick Start
+
+### Windows
+1. Download `windows-debug` artifact from [Actions](../../actions)
+2. Extract the zip
+3. Run `bike_control.exe`
+
+### Android
+1. Download `android-debug-apk` artifact from [Actions](../../actions)
+2. Transfer to your Android device
+3. Install the APK (enable "Install from unknown sources" if prompted)
+
+### iOS
+1. Download `ios-sideload-ipa` artifact from [Actions](../../actions)
+2. Follow the [iOS Sideload Installation](#ios-sideload-installation) instructions
